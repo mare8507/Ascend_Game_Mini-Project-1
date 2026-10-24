@@ -1,0 +1,1304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Ascend: a ten-floor risk ladder with a Remodel desk, a live odds dashboard, an exact optimal-play solution, and a simulation check.">
+<title>Ascend</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout concept: a drafting sheet. A building elevation on the left is the board you climb; the right column is the site office with live readouts, the Remodel desk and charts. */
+:root {
+  --bg: #e9ecee;
+  --surface: #f6f7f8;
+  --surface-2: #eceff1;
+  --ink: #12161a;
+  --ink-2: #4a5259;
+  --muted: #667077;
+  --line: #d3d8dc;
+  --axis: #b4bbc1;
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --neg: #e34948;
+  --s1-wash: rgba(42, 120, 214, 0.12);
+  --s2-wash: rgba(235, 104, 52, 0.14);
+  --neg-wash: rgba(227, 73, 72, 0.12);
+  --on-push: #ffffff;
+  --on-bank: #12161a;
+  --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1113;
+    --surface: #161a1d;
+    --surface-2: #1d2226;
+    --ink: #e8ebed;
+    --ink-2: #b4bcc2;
+    --muted: #8e979e;
+    --line: #2a3035;
+    --axis: #3a4147;
+    --s1: #3987e5;
+    --s2: #d95926;
+    --neg: #e66767;
+    --s1-wash: rgba(57, 135, 229, 0.16);
+    --s2-wash: rgba(217, 89, 38, 0.18);
+    --neg-wash: rgba(230, 103, 103, 0.16);
+    --on-push: #0b0b0b;
+    --on-bank: #0b0b0b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1113;
+  --surface: #161a1d;
+  --surface-2: #1d2226;
+  --ink: #e8ebed;
+  --ink-2: #b4bcc2;
+  --muted: #8e979e;
+  --line: #2a3035;
+  --axis: #3a4147;
+  --s1: #3987e5;
+  --s2: #d95926;
+  --neg: #e66767;
+  --s1-wash: rgba(57, 135, 229, 0.16);
+  --s2-wash: rgba(217, 89, 38, 0.18);
+  --neg-wash: rgba(230, 103, 103, 0.16);
+  --on-push: #0b0b0b;
+  --on-bank: #0b0b0b;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.sheet { max-width: 1180px; margin: 0 auto; display: grid; gap: 18px; }
+
+/* Title block */
+.titleblock { display: grid; grid-template-columns: 1fr auto; gap: 8px 24px; align-items: end; border-bottom: 2px solid var(--ink); padding-bottom: 10px; }
+.titleblock h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 6vw, 52px); line-height: 0.95; letter-spacing: 0.01em; margin: 0; text-transform: uppercase; text-wrap: balance; }
+.titleblock .meta { font-family: var(--font-data); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; text-align: right; }
+.rules { color: var(--ink-2); max-width: 82ch; margin: 0; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: 0.04em; text-transform: uppercase; background: transparent; color: var(--ink-2); border: 1px solid var(--line); border-radius: 2px; padding: 6px 16px; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tab:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 22px; letter-spacing: 0.03em; text-transform: uppercase; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-weight: 600; font-size: 17px; letter-spacing: 0.04em; text-transform: uppercase; margin: 0; color: var(--ink-2); }
+.sub { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); padding: 16px; min-width: 0; }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+/* Play layout */
+.play { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.col { display: grid; gap: 18px; min-width: 0; }
+@media (max-width: 860px) { .play { grid-template-columns: 1fr; } }
+
+/* Building */
+.building { display: block; width: 100%; height: auto; }
+.bld-label { font-family: var(--font-display); font-weight: 600; font-size: 20px; fill: var(--muted); }
+.bld-label.cur { fill: var(--ink); font-weight: 700; }
+.bld-pot { font-family: var(--font-data); font-size: 12px; fill: var(--ink); }
+.bld-up { font-family: var(--font-data); font-size: 10px; fill: var(--muted); }
+.slab-built { fill: var(--surface-2); stroke: var(--ink-2); stroke-width: 1.2; }
+.slab-cur { fill: var(--s1-wash); stroke: var(--s1); stroke-width: 2.5; }
+.slab-open { fill: none; stroke: var(--axis); stroke-width: 1; stroke-dasharray: 4 3; }
+.win { fill: var(--bg); stroke: var(--axis); stroke-width: 1; }
+.win.lit { fill: var(--s1); stroke: none; opacity: 0.9; }
+.ground-line { stroke: var(--ink); stroke-width: 2; }
+.hatch { stroke: var(--axis); stroke-width: 1; }
+.flag { fill: var(--muted); }
+.flag.on { fill: var(--s2); }
+.desk-mark { fill: var(--s2); }
+.flash-ok .slab-cur { animation: flashok 0.6s ease-out; }
+.flash-bad .slab-cur { animation: flashbad 0.6s ease-out; }
+@keyframes flashok { from { fill: var(--s1); } }
+@keyframes flashbad { from { fill: var(--neg); } }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase; border: 1px solid var(--axis); color: var(--muted); padding: 2px 8px; border-radius: 2px; }
+.chip.on { background: var(--s1); border-color: var(--s1); color: var(--on-push); }
+
+/* Status and actions */
+.status { display: grid; grid-template-columns: 1fr auto; gap: 8px 20px; align-items: end; }
+.hero { font-family: var(--font-display); font-weight: 700; font-size: clamp(56px, 11vw, 84px); line-height: 0.9; letter-spacing: 0; }
+.hero small { font-size: 0.3em; font-weight: 600; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 6px; }
+.facts { display: grid; gap: 4px; justify-items: end; text-align: right; font-size: 13px; color: var(--ink-2); }
+.pips { display: inline-flex; gap: 5px; vertical-align: middle; }
+.pip { width: 12px; height: 12px; border-radius: 50%; background: var(--s1); }
+.pip.used { background: transparent; border: 2px solid var(--axis); }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: 0.03em; text-transform: uppercase; border: 0; border-radius: 2px; padding: 12px 14px; cursor: pointer; text-align: left; display: grid; gap: 2px; min-height: 76px; align-content: center; }
+.btn .big { font-size: 28px; line-height: 1; }
+.btn .small { font-family: var(--font-body); font-weight: 500; font-size: 12px; letter-spacing: 0; text-transform: none; opacity: 0.9; }
+.btn-push { background: var(--s1); color: var(--on-push); }
+.btn-bank { background: var(--s2); color: var(--on-bank); }
+.btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+.btn-plain { font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: 0.04em; text-transform: uppercase; background: var(--ink); color: var(--bg); border: 0; border-radius: 2px; padding: 9px 16px; cursor: pointer; }
+.btn-plain[disabled] { opacity: 0.4; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--axis); }
+.advice { font-size: 13px; color: var(--ink-2); min-height: 20px; }
+.advice b { color: var(--ink); }
+.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+
+/* Remodel desk */
+.desk-head { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; align-items: baseline; }
+.deskgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.rm { border: 1px solid var(--axis); padding: 10px 12px; display: grid; gap: 4px; min-width: 0; align-content: start; background: var(--surface); }
+.rm.own { background: var(--s1-wash); border-color: var(--s1); }
+.rm.best { border-color: var(--s2); box-shadow: inset 0 0 0 1px var(--s2); }
+.rm-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.rm-name { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: 0.03em; text-transform: uppercase; line-height: 1.1; }
+.rm-price { font-family: var(--font-data); font-size: 14px; font-weight: 500; }
+.rm-effect { font-size: 13px; color: var(--ink-2); }
+.rm-prev { font-family: var(--font-data); font-size: 11.5px; color: var(--ink); }
+.rm-val { font-family: var(--font-data); font-size: 11.5px; color: var(--muted); }
+.rm-val.good { color: var(--s2); font-weight: 500; }
+.rm-state { font-size: 12px; color: var(--muted); min-height: 18px; }
+.rm .btn-plain { justify-self: start; margin-top: 4px; padding: 6px 14px; }
+@media (max-width: 480px) { .deskgrid { grid-template-columns: 1fr; } }
+
+/* Readouts */
+.readouts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 700px) { .readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ro { border-top: 2px solid var(--ink); padding-top: 6px; min-width: 0; }
+.ro .k { font-family: var(--font-data); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.ro .v { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1.05; }
+.ro .n { font-size: 12px; color: var(--ink-2); }
+.pos { color: var(--s1); } .neg { color: var(--neg); }
+
+/* Dice and log */
+.dice { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
+.die { width: 74px; height: 74px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 40px; border: 2px solid var(--ink); border-radius: 6px; background: var(--surface-2); }
+.die.ok { border-color: var(--s1); background: var(--s1-wash); }
+.die.bad { border-color: var(--neg); background: var(--neg-wash); }
+.dice-text { font-size: 14px; color: var(--ink-2); min-height: 44px; }
+.log { margin: 0; padding: 0; list-style: none; font-family: var(--font-data); font-size: 12px; color: var(--ink-2); display: grid; gap: 3px; max-height: 150px; overflow-y: auto; }
+.log li { border-left: 2px solid var(--line); padding-left: 8px; }
+
+/* Charts */
+.chart { width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.ax { font-family: var(--font-data); font-size: 11.5px; fill: var(--muted); }
+.axt { font-family: var(--font-body); font-size: 12px; fill: var(--muted); }
+.val { font-family: var(--font-data); font-size: 12px; fill: var(--ink); }
+.grid { stroke: var(--line); stroke-width: 1; }
+.base { stroke: var(--axis); stroke-width: 1; }
+.bar1 { fill: var(--s1); }
+.mark2 { stroke: var(--s2); stroke-width: 2; fill: none; }
+.line1 { stroke: var(--s1); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.line2 { stroke: var(--s2); stroke-width: 2; fill: none; }
+.dot1 { fill: var(--s1); stroke: var(--surface); stroke-width: 2; }
+.curband { fill: var(--s1-wash); }
+.hit { fill: transparent; }
+.hit:hover { fill: var(--s1-wash); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; display: inline-block; }
+.sw.b { background: var(--s1); border-radius: 2px; }
+.sw.o { background: var(--s2); height: 3px; }
+.sw.ol { background: var(--s2); height: 3px; width: 16px; }
+.sw.bl { background: var(--s1); height: 3px; width: 16px; }
+#tip { position: fixed; z-index: 50; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12px; line-height: 1.35; padding: 6px 9px; border-radius: 3px; max-width: 240px; opacity: 0; transition: opacity 0.08s; }
+#tip.on { opacity: 1; }
+
+/* Tables */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { font-family: var(--font-data); font-weight: 500; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--ink); white-space: nowrap; }
+td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); font-family: var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+td:first-child { font-family: var(--font-body); }
+tr.best td { background: var(--s1-wash); }
+td.bestcell { background: var(--s1-wash); font-weight: 500; color: var(--ink); }
+td.dim { color: var(--muted); }
+.evbar { display: inline-block; height: 6px; background: var(--s1); border-radius: 0 2px 2px 0; vertical-align: middle; margin-left: 8px; }
+.optrows td { text-align: right; }
+.optrows td:first-child, .optrows th:first-child { text-align: left; }
+.optrows tr.bestrow td { background: var(--s1-wash); }
+
+/* Analysis and settings */
+.stack { display: grid; gap: 18px; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.note { font-size: 13px; color: var(--ink-2); max-width: 80ch; }
+.note p { margin: 0 0 8px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+label.f { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+label.f span.h { font-size: 11.5px; color: var(--muted); }
+input[type="number"], select { font-family: var(--font-data); font-size: 14px; padding: 7px 8px; background: var(--bg); color: var(--ink); border: 1px solid var(--axis); border-radius: 2px; width: 100%; }
+.callout { border-left: 3px solid var(--s1); padding: 4px 0 4px 12px; }
+.mc-stat { font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1.1; }
+.mc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.kk { font-family: var(--font-data); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+@media (max-width: 480px) { .btn { font-size: 18px; } .btn .big { font-size: 22px; } }
+@media (prefers-reduced-motion: reduce) { .flash-ok .slab-cur, .flash-bad .slab-cur { animation: none; } #tip { transition: none; } }
+[hidden] { display: none !important; }
+</style>
+
+</head>
+<body>
+<div class="sheet">
+  <header class="titleblock">
+    <div>
+      <h1>Ascend</h1>
+    </div>
+    <div class="meta">Risk ladder<br>Drawing 1 of 1</div>
+  </header>
+  <p class="rules" id="rules"></p>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-play" aria-selected="true" aria-controls="view-play">Play</button>
+    <button class="tab" role="tab" id="tab-analysis" aria-selected="false" aria-controls="view-analysis">Analysis</button>
+    <button class="tab" role="tab" id="tab-settings" aria-selected="false" aria-controls="view-settings">Settings</button>
+  </div>
+
+  <section id="view-play" role="tabpanel" aria-labelledby="tab-play">
+    <div class="play">
+      <div class="panel" aria-label="Building elevation">
+        <div id="building"></div>
+      </div>
+      <div class="col">
+        <div class="panel">
+          <div class="status">
+            <div class="hero" id="hero"></div>
+            <div class="facts" id="facts"></div>
+          </div>
+        </div>
+        <div class="panel" style="display:grid; gap:12px;">
+          <div class="actions" id="actions"></div>
+          <div class="row" style="justify-content:space-between;">
+            <label class="toggle"><input type="checkbox" id="showAdvice"> Show the optimal call and option values</label>
+            <div class="advice" id="advice" aria-live="polite"></div>
+          </div>
+        </div>
+        <div class="panel" id="deskPanel">
+          <div class="desk-head">
+            <h2>Remodel desk</h2>
+            <span class="sub" id="deskSub"></span>
+          </div>
+          <div class="deskgrid" id="deskGrid"></div>
+        </div>
+        <div class="panel" style="display:grid; gap:14px;">
+          <div class="readouts" id="readouts"></div>
+        </div>
+        <div class="panel" id="optPanel" hidden>
+          <h3>What each option is worth right now</h3>
+          <p class="sub" id="optSub"></p>
+          <div class="tablewrap"><table class="optrows" id="optTable"></table></div>
+        </div>
+        <div class="panel">
+          <div class="dice">
+            <div class="die" id="die">d20</div>
+            <div class="dice-text" id="diceText" aria-live="polite">Push to roll.</div>
+          </div>
+        </div>
+        <div class="two">
+          <div class="panel">
+            <h3>Where a push could leave you</h3>
+            <p class="sub" id="distSub"></p>
+            <div class="chart" id="chartDist"></div>
+            <div class="legend"><span><i class="sw b"></i>Chance of each final payout band if you push</span><span><i class="sw o"></i>Bank now (certain)</span></div>
+          </div>
+          <div class="panel">
+            <h3>Your odds against the break-even</h3>
+            <p class="sub" id="oddsSub"></p>
+            <div class="chart" id="chartOdds"></div>
+            <div class="legend"><span><i class="sw b"></i>Chance the check succeeds</span><span><i class="sw o"></i>Chance needed to break even</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Site log</h3>
+          <ul class="log" id="log"><li>No moves yet.</li></ul>
+        </div>
+        <div class="panel">
+          <h3>Your session</h3>
+          <p class="sub" id="sessionSub"></p>
+          <div class="tablewrap"><table id="history"></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-analysis" role="tabpanel" aria-labelledby="tab-analysis" hidden>
+    <div class="stack">
+      <div class="panel">
+        <h2>Strategies compared</h2>
+        <p class="sub">Exact results for a run that starts on floor 1. Each fixed strategy pushes until it reaches its target floor, then banks, and never buys a remodel.</p>
+        <div class="tablewrap"><table id="stratTable"></table></div>
+        <div class="note" id="stratNote" style="margin-top:10px;"></div>
+      </div>
+      <div class="panel">
+        <h2>Best move on each floor</h2>
+        <p class="sub">Worth of every option with nothing installed yet and no dollars spent, in certainty-equivalent dollars. The shaded cell is the optimal move.</p>
+        <div class="row" style="margin: 10px 0;">
+          <label class="f" style="min-width:200px;"><span>Falls already used</span><select id="optFalls"></select></label>
+        </div>
+        <div class="tablewrap"><table id="floorTable"></table></div>
+      </div>
+      <div class="two">
+        <div class="panel">
+          <h2>Remodels under optimal play</h2>
+          <p class="sub">How often the optimal player installs each remodel, exact.</p>
+          <div class="tablewrap"><table id="ownTable"></table></div>
+          <div class="note" id="ownNote" style="margin-top:10px;"></div>
+        </div>
+        <div class="panel">
+          <h2>Risk appetite changes the answer</h2>
+          <p class="sub">Same building, different tolerance for ending with nothing. Lower appetite means a sure payout is worth more to the player.</p>
+          <div class="tablewrap"><table id="sensTable"></table></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Does the simulation agree with the math?</h2>
+        <p class="sub">Plays the optimal policy from floor 1 with real d20 rolls and compares the result with the exact answer.</p>
+        <div class="row" style="margin: 10px 0;">
+          <label class="f" style="min-width:160px;"><span>Runs</span>
+            <select id="mcN"><option value="10000">10,000</option><option value="100000" selected>100,000</option><option value="1000000">1,000,000</option></select>
+          </label>
+          <button class="btn-plain" id="mcRun" style="align-self:end;">Simulate</button>
+          <span class="note" id="mcStatus" style="align-self:end;"></span>
+        </div>
+        <div class="mc-grid" id="mcStats"></div>
+        <div class="two" style="margin-top:14px;">
+          <div>
+            <h3>Running average of the simulation</h3>
+            <div class="chart" id="chartMC"></div>
+            <div class="legend"><span><i class="sw bl"></i>Simulated average payout</span><span><i class="sw ol"></i>Exact expected payout</span></div>
+          </div>
+          <div>
+            <h3>Exact versus simulated</h3>
+            <div class="tablewrap"><table id="mcTable"></table></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel note">
+        <h2 style="margin-bottom:8px;">How the numbers are made</h2>
+        <p>Each check is a d20 roll that must meet or beat a number set for that floor (the roll needed). The chance of success is (21 minus the roll needed) divided by 20, so needing a 7 or higher gives 15 winning faces out of 20, or 75 percent. The pot on each floor is the base pot times the growth factor for each floor above the first, rounded to the nearest dollar. Roll-needed values are rounded half up and held between 2 and 20.</p>
+        <p>A remodel costs a share of the pot on the floor where you buy it. Spending comes off your take-home, so a fall can leave you with less than the pot of the floor you land on. A purchase needs your current take-home to cover its price, can be made once per run, and does not end your turn. Because pots grow exponentially, a share-of-pot price keeps the dollar risk growing as you climb. A fixed price would become trivial on the upper floors.</p>
+        <p>Optimal calls come from backward induction. The value of every state (floor, falls used, remodels installed, dollars spent) is computed from the top floor down, so each decision accounts for everything that can happen afterward, including later purchases. Banking, pushing and each purchase are compared by value in utility, where the utility of a payout x is x raised to the risk appetite. At risk appetite 1 this is plain expected payout.</p>
+        <p id="verifyNote">Verification: the exact results were compared with a separately written implementation across eight parameter sets (3,348 comparisons, including values and optimal moves at about 1,300 sampled states, every fixed strategy, and how often each remodel is installed). With the desk switched off, the model reproduces an earlier verified version exactly. The simulation above is a third check using real d20 rolls. All parameters on this page are hypothetical design choices, not claims about any real game.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+    <div class="stack">
+      <div class="panel">
+        <h2>Building specification</h2>
+        <p class="sub">Changing any value restarts the run and clears your session.</p>
+        <div class="fields" style="margin-top:12px;">
+          <label class="f"><span>Floor 1 pot ($)</span><input type="number" id="p_base" min="1" step="10"></label>
+          <label class="f"><span>Pot growth per floor</span><input type="number" id="p_growth" min="1.01" max="3" step="0.05"><span class="h">1.5 means each floor pays 50 percent more</span></label>
+          <label class="f"><span>Roll needed to leave floor 1</span><input type="number" id="p_dc0" min="2" max="20" step="1"></label>
+          <label class="f"><span>Roll needed rises per floor by</span><input type="number" id="p_step" min="0" max="5" step="0.5"></label>
+          <label class="f"><span>Floors lost on a fall</span><input type="number" id="p_fall" min="1" max="5" step="1"></label>
+          <label class="f"><span>Falls allowed</span><input type="number" id="p_lives" min="0" max="4" step="1"><span class="h">After these, the next miss is a death save</span></label>
+          <label class="f"><span>Roll needed to survive a death save</span><input type="number" id="p_deathDC" min="2" max="20" step="1"></label>
+          <label class="f"><span>Risk appetite</span><input type="number" id="p_a" min="0.3" max="1" step="0.05"><span class="h">1.00 maximizes expected payout; lower is more cautious</span></label>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Remodel desk</h2>
+        <p class="sub">Each remodel costs a percentage of the pot on the floor where you buy it.</p>
+        <div class="fields" style="margin-top:12px;">
+          <label class="f"><span>Desk</span><select id="p_shop"><option value="1">Open</option><option value="0">Closed (no remodels)</option></select></label>
+          <label class="f"><span>Desk opens on floor</span><input type="number" id="p_shopFrom" min="1" max="9" step="1"></label>
+          <label class="f"><span>Footing price (% of pot)</span><input type="number" id="p_sh0" min="5" max="95" step="5"><span class="h">Roll needed 1 lower on every floor</span></label>
+          <label class="f"><span>Stairwell price (% of pot)</span><input type="number" id="p_sh1" min="5" max="95" step="5"><span class="h">A fall costs 1 floor less</span></label>
+          <label class="f"><span>Safety net price (% of pot)</span><input type="number" id="p_sh2" min="5" max="95" step="5"><span class="h">One extra fall allowed</span></label>
+          <label class="f"><span>Penthouse price (% of pot)</span><input type="number" id="p_sh3" min="5" max="95" step="5"><span class="h">Every payout worth 25% more</span></label>
+        </div>
+        <div class="row" style="margin-top:16px;">
+          <button class="btn-plain" id="applySettings">Apply and restart</button>
+          <button class="btn-plain btn-ghost" id="resetSettings">Restore defaults</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Floor schedule</h2>
+        <div class="tablewrap"><table id="schedule"></table></div>
+      </div>
+    </div>
+  </section>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+// Core model for Ascend, a floor-climbing risk game with a Remodel desk. Pure functions, no DOM.
+//
+// Floors 1..N. On floor r (r < N) the player may bank, push, or (when the desk is open) buy a remodel.
+// Push = one d20 roll that must meet or beat the roll needed for that floor: chance = (21 - needed) / 20.
+// Hit: up one floor. Miss: fall back `fall` floors (never below floor 1) and use one fall.
+// Once every fall is used, the next miss triggers a death save: one d20 against deathDC.
+// Survive and you bank the payout of the floor you fell to; fail and you leave with $0.
+// Reaching floor N banks automatically.
+//
+// Remodels (each can be bought once per run, on floors >= shopFrom and < N, before banking or pushing):
+//   0 Footing    roll needed is 1 lower on every floor (never below 2)
+//   1 Stairwell  a fall drops one floor fewer (never fewer than 1)
+//   2 Safety net one extra fall allowed
+//   3 Penthouse  every payout x1.25 (rounded half up)
+// Price of remodel i on floor r = round half up (share_i x plain pot of floor r).
+// Payout = max(0, gross payout - dollars spent). A remodel needs the current payout to cover its price.
+// Values are solved by backward induction in utility units, u(x) = x^a (a = 1: plain dollars).
+var Core = (function () {
+  var N = 10, PENT = 1.25;
+  var REMODELS = [
+    { id: 'footing', name: 'Footing', effect: 'Every floor needs a roll 1 lower' },
+    { id: 'stairwell', name: 'Stairwell', effect: 'A fall costs 1 floor less' },
+    { id: 'net', name: 'Safety net', effect: 'One extra fall allowed' },
+    { id: 'penthouse', name: 'Penthouse', effect: 'Every payout is worth 25% more' }
+  ];
+  var defaultParams = {
+    base: 100, growth: 1.5, dc0: 3, step: 2, fall: 2, lives: 2, deathDC: 17, a: 1.0,
+    shop: true, shopFrom: 3, shares: [0.4, 0.3, 0.45, 0.6]
+  };
+
+  function rnd(x) { return Math.floor(x + 0.5); }
+  function clampDC(x) { return Math.min(20, Math.max(2, rnd(x))); }
+  function util(a, x) { return x > 0 ? Math.pow(x, a) : 0; }
+  function inv(a, y) { return y > 0 ? Math.pow(y, 1 / a) : 0; }
+  function has(mask, i) { return (mask >> i) & 1; }
+
+  function buildModel(params) {
+    var P = {};
+    for (var k0 in defaultParams) P[k0] = (params && params[k0] !== undefined) ? params[k0] : defaultParams[k0];
+    var m = { N: N, params: P, a: P.a, L: P.lives, shop: !!P.shop, shopFrom: P.shopFrom, shares: P.shares.slice() };
+    m.pot = [null];
+    for (var r = 1; r <= N; r++) m.pot.push(rnd(P.base * Math.pow(P.growth, r - 1)));
+    m.dc = [null];
+    for (r = 1; r < N; r++) m.dc.push(clampDC(P.dc0 + P.step * (r - 1)));
+    m.deathDC = clampDC(P.deathDC);
+    m.s = (21 - m.deathDC) / 20;
+
+    m.price = function (i, r) { return rnd(m.shares[i] * m.pot[r]); };
+    m.gross = function (r, mask) { return has(mask, 3) ? rnd(m.pot[r] * PENT) : m.pot[r]; };
+    m.pay = function (r, mask, sp) { return Math.max(0, m.gross(r, mask) - sp); };
+    m.neededRoll = function (r, mask) { return Math.max(2, m.dc[r] - (has(mask, 0) ? 1 : 0)); };
+    m.hit = function (r, mask) { return (21 - m.neededRoll(r, mask)) / 20; };
+    m.fallDist = function (mask) { return has(mask, 1) ? Math.max(1, P.fall - 1) : P.fall; };
+    m.tgt = function (r, mask) { return Math.max(1, r - m.fallDist(mask)); };
+    m.leff = function (mask) { return m.L + (has(mask, 2) ? 1 : 0); };
+    m.canBuy = function (i, r, mask, sp) {
+      return m.shop && r < N && r >= m.shopFrom && !has(mask, i) && m.pay(r, mask, sp) >= m.price(i, r);
+    };
+    m.deskOpen = function (r) { return m.shop && r < N && r >= m.shopFrom; };
+
+    var memo = new Map();
+    function key(r, f, mask, sp) { return r + 16 * (f + 8 * (mask + 16 * sp)); }
+
+    // Utility values of each option at a state. push is null at the top floor.
+    function partsCalc(r, f, mask, sp) {
+      var bank = util(m.a, m.pay(r, mask, sp));
+      if (r === N) return { bank: bank, push: null, buys: [null, null, null, null], succ: null, fail: null };
+      var t = m.tgt(r, mask), p = m.hit(r, mask);
+      var succ = V(r + 1, f, mask, sp);
+      var fail = (f < m.leff(mask)) ? V(t, f + 1, mask, sp) : m.s * util(m.a, m.pay(t, mask, sp));
+      var push = p * succ + (1 - p) * fail;
+      var buys = [];
+      for (var i = 0; i < 4; i++) buys.push(m.canBuy(i, r, mask, sp) ? V(r, f, mask | (1 << i), sp + m.price(i, r)) : null);
+      return { bank: bank, push: push, buys: buys, succ: succ, fail: fail };
+    }
+    function V(r, f, mask, sp) {
+      var k = key(r, f, mask, sp), c = memo.get(k);
+      if (c !== undefined) return c;
+      var q = partsCalc(r, f, mask, sp);
+      var v = q.bank;
+      if (q.push !== null) {
+        if (q.push > v) v = q.push;
+        for (var i = 0; i < 4; i++) if (q.buys[i] !== null && q.buys[i] > v) v = q.buys[i];
+      }
+      memo.set(k, v);
+      return v;
+    }
+    m.V = V;
+    m.parts = partsCalc;
+    m.statesSolved = function () { return memo.size; };
+
+    // Optimal action: 'bank' | 'push' | 'buy0'..'buy3'. Ties prefer bank, then push, then the lowest buy.
+    m.act = function (r, f, mask, sp) {
+      var q = partsCalc(r, f, mask, sp);
+      if (q.push === null) return 'bank';
+      var best = Math.max(q.bank, q.push), bv = -Infinity, bi = -1;
+      for (var i = 0; i < 4; i++) if (q.buys[i] !== null && q.buys[i] > bv) { bv = q.buys[i]; bi = i; }
+      // lowest index among buys within tolerance of the best buy
+      if (bi >= 0 && bv > best + 1e-9) {
+        for (i = 0; i < 4; i++) if (q.buys[i] !== null && q.buys[i] >= bv - 1e-9) return 'buy' + i;
+      }
+      return q.push > q.bank + 1e-9 ? 'push' : 'bank';
+    };
+
+    // Policy actions: 'opt' or 'T<n>' (push until floor n, then bank; never buys)
+    m.polAct = function (pol, r, f, mask, sp) {
+      if (r === N) return 'bank';
+      if (pol === 'opt') return m.act(r, f, mask, sp);
+      return r >= parseInt(pol.slice(1), 10) ? 'bank' : 'push';
+    };
+
+    // Exact distribution of (payout, final mask) under a policy, over the states the policy reaches.
+    var dmemo = {};
+    function add(out, k, v) { out.set(k, (out.get(k) || 0) + v); }
+    function dist(pol, r, f, mask, sp) {
+      var mm = dmemo[pol] || (dmemo[pol] = new Map());
+      var k = key(r, f, mask, sp), c = mm.get(k);
+      if (c) return c;
+      var out = new Map();
+      var a = m.polAct(pol, r, f, mask, sp);
+      if (a === 'bank') out.set(m.pay(r, mask, sp) * 16 + mask, 1);
+      else if (a.charAt(0) === 'b' && a.charAt(1) === 'u') {
+        var i = parseInt(a.charAt(3), 10);
+        out = dist(pol, r, f, mask | (1 << i), sp + m.price(i, r));
+      } else out = combinePush(pol, r, f, mask, sp);
+      mm.set(k, out);
+      return out;
+    }
+    function combinePush(pol, r, f, mask, sp) {
+      var out = new Map(), p = m.hit(r, mask), t = m.tgt(r, mask);
+      dist(pol, r + 1, f, mask, sp).forEach(function (pr, kk) { add(out, kk, p * pr); });
+      if (f < m.leff(mask)) dist(pol, t, f + 1, mask, sp).forEach(function (pr, kk) { add(out, kk, (1 - p) * pr); });
+      else {
+        add(out, m.pay(t, mask, sp) * 16 + mask, (1 - p) * m.s);
+        add(out, mask, (1 - p) * (1 - m.s));
+      }
+      return out;
+    }
+    m.dist = dist;
+    // Distribution if the player takes `action` now ('bank' | 'push' | 'buyI') and then follows pol.
+    m.distAfter = function (pol, r, f, mask, sp, action) {
+      if (r === N || action === 'bank') { var o = new Map(); o.set(m.pay(r, mask, sp) * 16 + mask, 1); return o; }
+      if (action === 'push') return combinePush(pol, r, f, mask, sp);
+      var i = parseInt(action.charAt(3), 10);
+      return dist(pol, r, f, mask | (1 << i), sp + m.price(i, r));
+    };
+    return m;
+  }
+
+  function stats(d) {
+    var byPay = new Map(), mean = 0, sq = 0;
+    d.forEach(function (pr, k) { var x = Math.floor(k / 16); byPay.set(x, (byPay.get(x) || 0) + pr); mean += x * pr; sq += x * x * pr; });
+    var xs = Array.from(byPay.keys()).sort(function (a, b) { return a - b; });
+    function q(t) { var c = 0; for (var i = 0; i < xs.length; i++) { c += byPay.get(xs[i]); if (c >= t - 1e-12) return xs[i]; } return xs[xs.length - 1]; }
+    return { mean: mean, sd: Math.sqrt(Math.max(0, sq - mean * mean)), median: q(0.5), p10: q(0.1), p90: q(0.9), pZero: byPay.get(0) || 0, byPay: byPay, xs: xs };
+  }
+  function ownedProbs(d) {
+    var o = [0, 0, 0, 0];
+    d.forEach(function (pr, k) { var mask = k % 16; for (var i = 0; i < 4; i++) if (has(mask, i)) o[i] += pr; });
+    return o;
+  }
+  function ce(m, utilValue) { return inv(m.a, utilValue); }
+
+  // Option values in certainty-equivalent dollars at a state.
+  function options(m, st) {
+    var q = m.parts(st.r, st.f, st.mask, st.sp), best = m.V(st.r, st.f, st.mask, st.sp);
+    var o = { bank: ce(m, q.bank), push: q.push === null ? null : ce(m, q.push), buys: q.buys.map(function (b) { return b === null ? null : ce(m, b); }), best: ce(m, best), act: m.act(st.r, st.f, st.mask, st.sp) };
+    var denom = (q.succ === null) ? 0 : q.succ - q.fail;
+    o.breakEven = q.push === null ? null : (denom > 1e-12 ? Math.min(1, Math.max(0, (q.bank - q.fail) / denom)) : 1);
+    o.failBeatsBank = q.push !== null && q.fail >= q.bank - 1e-9;
+    return o;
+  }
+  function optionValue(o, action) {
+    if (action === 'bank') return o.bank;
+    if (action === 'push') return o.push;
+    return o.buys[parseInt(action.charAt(3), 10)];
+  }
+  // Break-even hit chance if standing on floor r with falls f, mask, spend sp (hypothetical, used by charts)
+  function breakEvenAt(m, r, f, mask, sp) { return options(m, { r: r, f: f, mask: mask, sp: sp }).breakEven; }
+
+  function regret(m, st, action) {
+    if (st.r === N) return 0;
+    var o = options(m, st), v = optionValue(o, action);
+    return Math.max(0, o.best - v);
+  }
+
+  // One push. rollD20() returns an integer 1..20.
+  function push(m, st, rollD20) {
+    var r = st.r, roll = rollD20(), need = m.neededRoll(r, st.mask);
+    if (roll >= need) {
+      var nr = r + 1;
+      var ns = { r: nr, f: st.f, mask: st.mask, sp: st.sp };
+      return { kind: 'success', roll: roll, need: need, next: ns, done: nr === N, payout: nr === N ? m.pay(N, st.mask, st.sp) : null };
+    }
+    var t = m.tgt(r, st.mask);
+    if (st.f < m.leff(st.mask)) return { kind: 'fall', roll: roll, need: need, next: { r: t, f: st.f + 1, mask: st.mask, sp: st.sp }, done: false, payout: null, fellTo: t };
+    var dr = rollD20(), ok = dr >= m.deathDC;
+    return { kind: 'death', roll: roll, need: need, saveRoll: dr, saveNeed: m.deathDC, survived: ok, next: { r: t, f: st.f, mask: st.mask, sp: st.sp }, done: true, payout: ok ? m.pay(t, st.mask, st.sp) : 0, fellTo: t };
+  }
+  function buy(m, st, i) {
+    if (!m.canBuy(i, st.r, st.mask, st.sp)) return null;
+    return { r: st.r, f: st.f, mask: st.mask | (1 << i), sp: st.sp + m.price(i, st.r) };
+  }
+
+  function mulberry32(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // Monte Carlo of a policy from floor 1 with real d20 rolls.
+  function monteCarlo(m, pol, n, seed) {
+    var rng = mulberry32(seed || 1);
+    var roll = function () { return 1 + Math.floor(rng() * 20); };
+    var owned = [0, 0, 0, 0], sum = 0, sumsq = 0, spentSum = 0, checkpoints = [], nextCp = 10, zero = 0, byPay = new Map();
+    for (var i = 1; i <= n; i++) {
+      var st = { r: 1, f: 0, mask: 0, sp: 0 }, pay = null;
+      while (pay === null) {
+        var a = m.polAct(pol, st.r, st.f, st.mask, st.sp);
+        if (a === 'bank') { pay = m.pay(st.r, st.mask, st.sp); break; }
+        if (a.charAt(0) === 'b' && a.charAt(1) === 'u') { st = buy(m, st, parseInt(a.charAt(3), 10)); continue; }
+        var o = push(m, st, roll);
+        if (o.done) { pay = o.payout; st = o.next; break; }
+        st = o.next;
+      }
+      for (var j = 0; j < 4; j++) owned[j] += has(st.mask, j);
+      sum += pay; sumsq += pay * pay; spentSum += st.sp; if (pay === 0) zero++;
+      byPay.set(pay, (byPay.get(pay) || 0) + 1);
+      if (i === nextCp || i === n) { checkpoints.push({ n: i, mean: sum / i }); nextCp = Math.ceil(nextCp * 1.5); }
+    }
+    var mean = sum / n, varr = Math.max(0, sumsq / n - mean * mean);
+    return { n: n, mean: mean, sd: Math.sqrt(varr), se: Math.sqrt(varr / n), checkpoints: checkpoints, owned: owned.map(function (x) { return x / n; }), avgSpent: spentSum / n, pZero: zero / n, byPay: byPay };
+  }
+
+  return {
+    N: N, REMODELS: REMODELS, defaultParams: defaultParams, buildModel: buildModel, stats: stats, ownedProbs: ownedProbs,
+    options: options, optionValue: optionValue, breakEvenAt: breakEvenAt, regret: regret, push: push, buy: buy,
+    monteCarlo: monteCarlo, mulberry32: mulberry32, util: util, inv: inv, ce: ce, has: has
+  };
+})();
+if (typeof module !== 'undefined') module.exports = Core;
+
+</script>
+<script>
+(function () {
+  var N = Core.N, RM = Core.REMODELS;
+  var $ = function (id) { return document.getElementById(id); };
+  var settings, model, noShop, state, run, history = [], mc = null, sensToken = 0, sensDone = false;
+
+  function cloneDefaults() { var d = Object.assign({}, Core.defaultParams); d.shares = Core.defaultParams.shares.slice(); return d; }
+  function money(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+  function compact(n) { if (n >= 10000) return '$' + Math.round(n / 1000) + 'K'; if (n >= 1000) return '$' + (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K'; return '$' + Math.round(n); }
+  function pct(x, d) { return (x * 100).toFixed(d === undefined ? 0 : d) + '%'; }
+  function roll20() { return 1 + Math.floor(Math.random() * 20); }
+  function signMoney(x) { var r = Math.round(x); return (r >= 0 ? '+' : '-') + '$' + Math.abs(r).toLocaleString('en-US'); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function rnd(x) { return Math.floor(x + 0.5); }
+  function niceMax(x) { var steps = [0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.75, 0.8, 1]; for (var i = 0; i < steps.length; i++) if (x <= steps[i]) return steps[i]; return 1; }
+  function niceTicks(lo, hi, n) {
+    if (hi - lo < 1e-9) { hi = lo + 1; }
+    var raw = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+    var step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag;
+    var a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step, t = [];
+    for (var v = a; v <= b + step * 0.001; v += step) t.push(Math.round(v * 1e6) / 1e6);
+    return t;
+  }
+  function ceDist(m, d) { var s = 0; d.forEach(function (pr, k) { s += pr * Core.util(m.a, Math.floor(k / 16)); }); return Core.inv(m.a, s); }
+  function actName(a) {
+    if (a === 'bank') return 'Bank';
+    if (a === 'push') return 'Push';
+    return 'Buy ' + RM[parseInt(a.charAt(3), 10)].name;
+  }
+  function cur() { return Core.options(model, state); }
+
+  /* ---------- Setup ---------- */
+  function rebuild() {
+    model = Core.buildModel(settings);
+    noShop = null;
+    mc = null; history = []; sensDone = false; sensToken++;
+    startRun();
+    renderRules(); renderSettingsView(); renderAnalysis();
+    if (!$('view-analysis').hidden) runSens();
+  }
+  function startRun() {
+    state = { r: 1, f: 0, mask: 0, sp: 0 };
+    run = { over: false, regret: 0, buys: 0, log: [], last: null, result: null, flash: '' };
+    renderPlay();
+  }
+  function noShopModel() {
+    if (!noShop) { var p = Object.assign({}, settings, { shop: false }); noShop = Core.buildModel(p); }
+    return noShop;
+  }
+  function fallsLeft() { return model.leff(state.mask) - state.f; }
+
+  function renderRules() {
+    var m = model;
+    var t = 'Climb the building one floor at a time. At any floor you can bank your take-home, or push: a d20 roll that has to meet that floor\'s target. A hit moves you up and grows the pot. A miss drops you ' + m.params.fall + (m.params.fall === 1 ? ' floor' : ' floors') + ' and costs one of your ' + m.L + (m.L === 1 ? ' fall' : ' falls') + '. ';
+    t += m.L === 0 ? 'With no falls allowed, a miss triggers the death save at once' : 'Once the falls run out, the next miss triggers a death save';
+    t += ': one d20 that needs a ' + m.deathDC + ' or higher (' + pct(m.s) + ' to survive). Survive and you bank the pot of the floor you fell to. Fail and you leave with $0. Reach floor ' + N + ' and you have ascended.';
+    if (m.shop) t += ' From floor ' + m.shopFrom + ', the Remodel desk sells permanent upgrades for the rest of the run. Each costs a share of the floor\'s pot and comes straight out of your take-home.';
+    $('rules').textContent = t;
+  }
+
+  /* ---------- Play view ---------- */
+  function renderBuilding() {
+    var FH = 42, top = 34, gh = 26, W = 360;
+    var H = top + N * FH + gh + 6;
+    var cur = state.r, m = model;
+    var s = '<svg class="building" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Building elevation, currently on floor ' + cur + '">';
+    s += '<defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" class="hatch"/></pattern></defs>';
+    for (var r = N; r >= 1; r--) {
+      var y = top + (N - r) * FH;
+      var cls = r === cur ? 'slab-cur' : (r < cur ? 'slab-built' : 'slab-open');
+      s += '<rect class="' + cls + '" x="76" y="' + y + '" width="176" height="' + FH + '"/>';
+      if (r <= cur) {
+        for (var i = 0; i < 4; i++) {
+          var lit = (r === cur) && (i % 2 === 0);
+          s += '<rect class="win' + (lit ? ' lit' : '') + '" x="' + (88 + i * 42) + '" y="' + (y + 12) + '" width="26" height="18"/>';
+        }
+      }
+      s += '<text class="bld-label' + (r === cur ? ' cur' : '') + '" x="54" y="' + (y + 28) + '" text-anchor="end">' + r + '</text>';
+      if (r === cur) s += '<polygon points="60,' + (y + 14) + ' 72,' + (y + 21) + ' 60,' + (y + 28) + '" fill="var(--s1)"/>';
+      if (m.deskOpen(r)) s += '<rect class="desk-mark" x="68" y="' + (y + 3) + '" width="4" height="' + (FH - 6) + '"/>';
+      s += '<text class="bld-pot" x="262" y="' + (y + 19) + '">' + money(m.pay(r, state.mask, state.sp)) + '</text>';
+      if (r < N) s += '<text class="bld-up" x="262" y="' + (y + 33) + '">up ' + pct(m.hit(r, state.mask)) + '</text>';
+      else s += '<text class="bld-up" x="262" y="' + (y + 33) + '">top</text>';
+    }
+    var gy = top + N * FH;
+    s += '<rect x="40" y="' + gy + '" width="240" height="' + gh + '" fill="url(#hatch)"/>';
+    s += '<line class="ground-line" x1="40" y1="' + gy + '" x2="280" y2="' + gy + '"/>';
+    var on = cur === N ? ' on' : '';
+    s += '<line x1="164" y1="' + top + '" x2="164" y2="' + (top - 26) + '" stroke="var(--ink-2)" stroke-width="1.5"/>';
+    s += '<polygon class="flag' + on + '" points="164,' + (top - 26) + ' 190,' + (top - 19) + ' 164,' + (top - 12) + '"/>';
+    s += '</svg>';
+    var chips = '<div class="chips">';
+    RM.forEach(function (x, i) { chips += '<span class="chip' + (Core.has(state.mask, i) ? ' on' : '') + '">' + esc(x.name) + '</span>'; });
+    chips += '</div>';
+    var legend = m.shop ? '<p class="sub" style="margin-top:8px;"><span style="color:var(--s2);">&#9646;</span> marks floors where the Remodel desk is open. Labels show take-home if you bank there.</p>' : '<p class="sub" style="margin-top:8px;">Labels show take-home if you bank there.</p>';
+    var el = $('building');
+    el.innerHTML = s + chips + legend;
+    el.className = run.flash ? run.flash : '';
+  }
+
+  function pips() {
+    var out = '<span class="pips" aria-hidden="true">', tot = model.leff(state.mask);
+    for (var i = 0; i < tot; i++) out += '<i class="pip' + (i < state.f ? ' used' : '') + '"></i>';
+    return out + '</span>';
+  }
+
+  function renderStatus() {
+    var take = model.pay(state.r, state.mask, state.sp);
+    $('hero').innerHTML = '<small>Take-home on floor ' + state.r + ' of ' + N + '</small>' + money(take);
+    var left = fallsLeft(), tot = model.leff(state.mask);
+    var f = '<div>Falls left ' + pips() + ' <span class="num">' + left + ' of ' + tot + '</span></div>';
+    if (state.sp > 0) f += '<div>Spent on remodels <span class="num">' + money(state.sp) + '</span></div>';
+    f += '<div>' + (state.r === N ? 'At the top' : (left > 0 ? 'A miss drops you to floor ' + model.tgt(state.r, state.mask) : 'A miss now means a death save')) + '</div>';
+    $('facts').innerHTML = f;
+  }
+
+  function renderActions(o) {
+    var el = $('actions');
+    if (run.over) {
+      var res = run.result;
+      el.style.gridTemplateColumns = '1fr';
+      el.innerHTML = '<div class="callout"><h2>' + esc(res.title) + '</h2><p class="sub">' + esc(res.detail) + '</p></div><button class="btn-plain" id="newRun" style="justify-self:start;">New run</button>';
+      $('newRun').addEventListener('click', startRun);
+      return;
+    }
+    el.style.gridTemplateColumns = '';
+    var need = model.neededRoll(state.r, state.mask);
+    el.innerHTML =
+      '<button class="btn btn-bank" id="bankBtn"><span class="big">Bank ' + money(model.pay(state.r, state.mask, state.sp)) + '</span><span class="small">Keep it. The run ends.</span></button>' +
+      '<button class="btn btn-push" id="pushBtn"><span class="big">Push to floor ' + (state.r + 1) + '</span><span class="small">Needs a ' + need + ' or higher. ' + pct(model.hit(state.r, state.mask)) + ' to hit.</span></button>';
+    $('bankBtn').addEventListener('click', doBank);
+    $('pushBtn').addEventListener('click', doPush);
+  }
+
+  function renderAdvice(o) {
+    var el = $('advice');
+    if (run.over || !$('showAdvice').checked) { el.innerHTML = ''; return; }
+    el.innerHTML = 'Optimal call: <b>' + actName(o.act) + '</b>';
+  }
+
+  function renderDesk(o) {
+    var m = model, grid = $('deskGrid');
+    if (!m.shop) { $('deskSub').textContent = 'The desk is closed in this setup.'; grid.innerHTML = ''; return; }
+    var adv = $('showAdvice').checked && !run.over;
+    var open = m.deskOpen(state.r);
+    $('deskSub').textContent = run.over ? 'Run finished.' : (state.r >= N ? 'No shopping at the top.' : (open ? 'Take-home ' + money(m.pay(state.r, state.mask, state.sp)) + '. Buying does not end your turn.' : 'Opens on floor ' + m.shopFrom + '.'));
+    var html = '';
+    RM.forEach(function (x, i) {
+      var own = Core.has(state.mask, i), price = m.price(i, Math.min(state.r, N - 1));
+      var can = !run.over && m.canBuy(i, state.r, state.mask, state.sp);
+      var best = adv && o && o.act === 'buy' + i;
+      var prev = '', stateTxt = '';
+      var r = state.r, mk = state.mask, sp = state.sp;
+      if (i === 0) prev = 'Hit chance here ' + pct(m.hit(r, mk)) + ' to ' + pct(m.hit(r, mk | 1));
+      if (i === 1) prev = 'A miss lands on floor ' + m.tgt(r, mk) + ' to ' + m.tgt(r, mk | 2);
+      if (i === 2) prev = 'Falls left ' + (m.leff(mk) - state.f) + ' to ' + (m.leff(mk | 4) - state.f);
+      if (i === 3) prev = 'Take-home if banked ' + money(m.pay(r, mk, sp)) + ' to ' + money(m.pay(r, mk | 8, sp + price));
+      if (own) { stateTxt = 'Installed'; prev = ''; }
+      else if (run.over) stateTxt = '';
+      else if (r >= N) stateTxt = 'Not sold at the top';
+      else if (!open) stateTxt = 'Opens on floor ' + m.shopFrom;
+      else if (!can) stateTxt = 'Take-home does not cover ' + money(price);
+      var val = '';
+      if (adv && o && can) {
+        var v = o.buys[i], gap = v - o.best;
+        val = '<div class="rm-val' + (best ? ' good' : '') + '">' + (best ? 'Best move. Worth ' + money(v) : 'Worth ' + money(v) + ' (' + signMoney(gap) + ' versus best)') + '</div>';
+      }
+      html += '<div class="rm' + (own ? ' own' : '') + (best ? ' best' : '') + '">' +
+        '<div class="rm-top"><span class="rm-name">' + esc(x.name) + '</span><span class="rm-price">' + (r >= N ? '' : money(price)) + '</span></div>' +
+        '<div class="rm-effect">' + esc(x.effect) + '</div>' +
+        (prev && !run.over ? '<div class="rm-prev">' + esc(prev) + '</div>' : '') + val +
+        (can ? '<button class="btn-plain buybtn" data-i="' + i + '">Buy for ' + money(price) + '</button>' : '<div class="rm-state">' + esc(stateTxt) + '</div>') +
+        '</div>';
+    });
+    grid.innerHTML = html;
+    Array.prototype.forEach.call(grid.querySelectorAll('.buybtn'), function (b) { b.addEventListener('click', function () { doBuy(parseInt(b.getAttribute('data-i'), 10)); }); });
+  }
+
+  function renderReadouts(o) {
+    var el = $('readouts');
+    if (run.over) { el.innerHTML = '<div class="ro"><div class="k">Run finished</div><div class="v">' + money(run.result.payout) + '</div><div class="n">Start a new run to see live odds.</div></div><div class="ro"><div class="k">Regret this run</div><div class="v">' + money(run.regret) + '</div><div class="n">Value given up versus optimal calls.</div></div>'; return; }
+    var edge = o.push - o.bank;
+    var edgeCls = edge >= 0 ? 'pos' : 'neg';
+    var edgeNote = model.a === 1 ? 'Expected dollars, optimal play after' : 'Certainty-equivalent dollars';
+    var t = model.tgt(state.r, state.mask), left = fallsLeft();
+    var miss = left <= 0
+      ? '<div class="v">Death save</div><div class="n">' + pct(model.s) + ' to survive and bank ' + money(model.pay(t, state.mask, state.sp)) + '</div>'
+      : '<div class="v">Floor ' + t + '</div><div class="n">Take-home falls to ' + money(model.pay(t, state.mask, state.sp)) + '</div>';
+    el.innerHTML =
+      '<div class="ro"><div class="k">Hit chance</div><div class="v">' + pct(model.hit(state.r, state.mask)) + '</div><div class="n">Roll a ' + model.neededRoll(state.r, state.mask) + ' or higher</div></div>' +
+      '<div class="ro"><div class="k">Break-even</div><div class="v">' + pct(o.breakEven) + '</div><div class="n">' + (o.failBeatsBank ? 'Even a miss beats banking here' : (model.hit(state.r, state.mask) >= o.breakEven ? 'Odds clear the line' : 'Odds fall short of the line')) + '</div></div>' +
+      '<div class="ro"><div class="k">Edge from pushing</div><div class="v ' + edgeCls + '">' + signMoney(edge) + '</div><div class="n">' + edgeNote + '</div></div>' +
+      '<div class="ro"><div class="k">If you miss</div>' + miss + '</div>';
+  }
+
+  function renderOptions(o) {
+    var panel = $('optPanel');
+    if (run.over || !$('showAdvice').checked) { panel.hidden = true; return; }
+    panel.hidden = false;
+    $('optSub').textContent = 'Each option, followed by optimal play afterwards. ' + (model.a === 1 ? 'Dollars are expected payout.' : 'Dollars are certainty equivalents at your risk appetite.');
+    var rows = [['bank', 'Bank now', o.bank], ['push', 'Push', o.push]];
+    RM.forEach(function (x, i) { if (o.buys[i] !== null) rows.push(['buy' + i, 'Buy ' + x.name + ' (' + money(model.price(i, state.r)) + '), then continue', o.buys[i]]); });
+    var h = '<tr><th>Option</th><th>Worth</th><th>Versus best</th></tr>';
+    rows.forEach(function (r) {
+      var isBest = r[0] === o.act;
+      h += '<tr class="' + (isBest ? 'bestrow' : '') + '"><td>' + esc(r[1]) + (isBest ? ' (best)' : '') + '</td><td>' + money(r[2]) + '</td><td>' + (isBest ? '' : signMoney(r[2] - o.best)) + '</td></tr>';
+    });
+    $('optTable').innerHTML = h;
+  }
+
+  function renderDice() {
+    var d = $('die'), t = $('diceText'), l = run.last;
+    if (!l) { d.className = 'die'; d.textContent = 'd20'; t.textContent = 'Push to roll.'; return; }
+    if (l.kind === 'bank' || l.kind === 'buy') { d.className = 'die'; d.textContent = l.kind === 'bank' ? '$' : 'R'; t.textContent = l.text; return; }
+    d.className = 'die ' + (l.kind === 'success' ? 'ok' : 'bad');
+    d.textContent = l.roll;
+    t.textContent = l.text;
+  }
+
+  function renderLog() {
+    var el = $('log');
+    if (!run.log.length) { el.innerHTML = '<li>No moves yet.</li>'; return; }
+    el.innerHTML = run.log.slice().reverse().map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('');
+  }
+
+  function renderPlay() {
+    var o = run.over ? null : cur();
+    renderBuilding(); renderStatus(); renderActions(o); renderAdvice(o); renderDesk(o); renderReadouts(o); renderOptions(o); renderDice(); renderLog();
+    renderHudCharts(o);
+    renderSession();
+  }
+
+  /* ---------- Moves ---------- */
+  function endRun(kind, payout, floor, title, detail) {
+    run.over = true;
+    run.result = { kind: kind, payout: payout, floor: floor, title: title, detail: detail };
+    history.push({ n: history.length + 1, title: title, payout: payout, spent: state.sp, regret: run.regret });
+  }
+  function detailTail() { return state.sp > 0 ? ' You spent ' + money(state.sp) + ' on remodels.' : ''; }
+  function doBank() {
+    if (run.over) return;
+    run.regret += Core.regret(model, state, 'bank');
+    var take = model.pay(state.r, state.mask, state.sp);
+    run.last = { kind: 'bank', text: 'Banked ' + money(take) + ' on floor ' + state.r + '.' };
+    run.log.push('Banked ' + money(take) + ' on floor ' + state.r + '.');
+    run.flash = '';
+    endRun('bank', take, state.r, 'Banked ' + money(take), 'You stopped on floor ' + state.r + ' with ' + fallsLeft() + ' of ' + model.leff(state.mask) + ' falls left.' + detailTail());
+    renderPlay();
+  }
+  function doBuy(i) {
+    if (run.over) return;
+    var ns = Core.buy(model, state, i);
+    if (!ns) return;
+    run.regret += Core.regret(model, state, 'buy' + i);
+    var price = ns.sp - state.sp;
+    run.buys++;
+    state = ns;
+    var text = 'Installed ' + RM[i].name + ' for ' + money(price) + '. Take-home is now ' + money(model.pay(state.r, state.mask, state.sp)) + '.';
+    run.last = { kind: 'buy', text: text };
+    run.log.push(text);
+    run.flash = '';
+    renderPlay();
+  }
+  function doPush() {
+    if (run.over) return;
+    run.regret += Core.regret(model, state, 'push');
+    var o = Core.push(model, state, roll20), text;
+    if (o.kind === 'success') {
+      text = 'Rolled ' + o.roll + ', needed ' + o.need + '. Hit. Up to floor ' + o.next.r + '.';
+      run.flash = 'flash-ok';
+      run.last = { kind: 'success', roll: o.roll, text: text };
+      run.log.push(text);
+      state = o.next;
+      if (o.done) endRun('top', o.payout, N, 'Reached the top: ' + money(o.payout), 'You reached floor ' + N + ' with ' + fallsLeft() + ' of ' + model.leff(state.mask) + ' falls left.' + detailTail());
+    } else if (o.kind === 'fall') {
+      state = o.next;
+      text = 'Rolled ' + o.roll + ', needed ' + o.need + '. Miss. Fell to floor ' + o.fellTo + '. ' + fallsLeft() + ' ' + (fallsLeft() === 1 ? 'fall' : 'falls') + ' left.';
+      run.flash = 'flash-bad';
+      run.last = { kind: 'fall', roll: o.roll, text: text };
+      run.log.push(text);
+    } else {
+      text = 'Rolled ' + o.roll + ', needed ' + o.need + '. Miss. Death save: rolled ' + o.saveRoll + ', needed ' + o.saveNeed + '. ' + (o.survived ? 'Survived.' : 'Failed.');
+      run.flash = 'flash-bad';
+      run.last = { kind: o.survived ? 'success' : 'fall', roll: o.saveRoll, text: text };
+      run.log.push(text);
+      state = o.next;
+      if (o.survived) endRun('save', o.payout, o.fellTo, 'Survived the death save, banked ' + money(o.payout), 'You fell to floor ' + o.fellTo + ' and kept its take-home.' + detailTail());
+      else endRun('dead', 0, 0, 'Failed the death save, $0', 'The pot is gone.' + detailTail());
+    }
+    renderPlay();
+  }
+
+  /* ---------- Tooltip ---------- */
+  var tip = null;
+  function setupTip() {
+    tip = $('tip');
+    function show(e) {
+      var t = e.target.closest ? e.target.closest('[data-tip]') : null;
+      if (!t) { tip.classList.remove('on'); return; }
+      tip.textContent = t.getAttribute('data-tip');
+      tip.classList.add('on');
+      var x = e.clientX + 14, y = e.clientY + 14, w = tip.offsetWidth, h = tip.offsetHeight;
+      if (x + w > window.innerWidth - 8) x = e.clientX - w - 14;
+      if (y + h > window.innerHeight - 8) y = e.clientY - h - 14;
+      tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+    }
+    document.addEventListener('pointermove', show);
+    document.addEventListener('pointerdown', show);
+    document.addEventListener('pointerleave', function () { tip.classList.remove('on'); });
+  }
+
+  /* ---------- Charts ---------- */
+  function roundedTopBar(x, y, w, h, r) {
+    if (h <= 0) return '';
+    if (h < r * 2) return 'M' + x + ',' + (y + h) + 'L' + x + ',' + y + 'L' + (x + w) + ',' + y + 'L' + (x + w) + ',' + (y + h) + 'Z';
+    return 'M' + x + ',' + (y + h) + 'L' + x + ',' + (y + r) + 'Q' + x + ',' + y + ' ' + (x + r) + ',' + y + 'L' + (x + w - r) + ',' + y + 'Q' + (x + w) + ',' + y + ' ' + (x + w) + ',' + (y + r) + 'L' + (x + w) + ',' + (y + h) + 'Z';
+  }
+  function bandEdges() { var mm = model.shop ? 1.25 : 1, e = []; for (var k = 1; k <= N; k++) e.push(rnd(model.pot[k] * mm)); return e; }
+  function bandOf(edges, x) { if (x <= 0) return 0; for (var k = 1; k <= N; k++) if (x <= edges[k - 1]) return k; return N; }
+  function bandsFromMap(edges, d) { var a = new Array(N + 1).fill(0); d.forEach(function (pr, k) { a[bandOf(edges, Math.floor(k / 16))] += pr; }); return a; }
+
+  function chartDist(bands, edges, bankBand, bankPay) {
+    var W = 400, H = 230, l = 42, r = 8, t = 28, b = 36;
+    var cats = [];
+    for (var i = 0; i <= N; i++) if (bands[i] > 0.0005 || i === bankBand) cats.push(i);
+    var maxv = 0; cats.forEach(function (i) { maxv = Math.max(maxv, bands[i]); });
+    var ymax = niceMax(maxv);
+    var pw = W - l - r, ph = H - t - b, slot = pw / cats.length, bw = Math.min(24, slot * 0.62);
+    var y = function (v) { return t + ph - (v / ymax) * ph; };
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Chance of each final payout band">';
+    var ticks = ymax <= 0.25 ? 0.05 : (ymax <= 0.5 ? 0.1 : 0.25);
+    for (var v = 0; v <= ymax + 1e-9; v += ticks) {
+      s += '<line class="grid" x1="' + l + '" x2="' + (W - r) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>';
+      s += '<text class="ax" x="' + (l - 6) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + pct(v) + '</text>';
+    }
+    cats.forEach(function (i, k) {
+      var cx = l + slot * k + slot / 2;
+      if (i === bankBand) {
+        s += '<line class="mark2" x1="' + cx + '" x2="' + cx + '" y1="' + (t - 6) + '" y2="' + (t + ph) + '"/>';
+        s += '<text class="axt" x="' + cx + '" y="' + (t - 12) + '" text-anchor="middle">bank now</text>';
+      }
+      var h = (bands[i] / ymax) * ph;
+      s += '<path class="bar1" d="' + roundedTopBar(cx - bw / 2, y(bands[i]), bw, h, 4) + '"/>';
+      if (bands[i] >= 0.12) s += '<text class="val" x="' + cx + '" y="' + (y(bands[i]) - 5) + '" text-anchor="middle">' + pct(bands[i]) + '</text>';
+      var label = i === 0 ? '$0' : compact(edges[i - 1]);
+      var lo = i <= 1 ? 1 : edges[i - 2] + 1;
+      s += '<text class="ax" x="' + cx + '" y="' + (t + ph + 14) + '" text-anchor="middle">' + label + '</text>';
+      var tipText = (i === 0 ? '$0' : money(lo) + ' to ' + money(edges[i - 1])) + ': ' + pct(bands[i], 1) + ' chance if you push' + (i === bankBand ? '. Banking now pays ' + money(bankPay) + ' for certain.' : '');
+      s += '<rect class="hit" x="' + (cx - slot / 2) + '" y="' + t + '" width="' + slot + '" height="' + ph + '" data-tip="' + esc(tipText) + '"/>';
+    });
+    s += '<line class="base" x1="' + l + '" x2="' + (W - r) + '" y1="' + (t + ph) + '" y2="' + (t + ph) + '"/>';
+    s += '<text class="axt" x="' + (l + pw / 2) + '" y="' + (H - 4) + '" text-anchor="middle">Final payout, up to</text>';
+    return s + '</svg>';
+  }
+
+  function chartOdds(curR) {
+    var W = 400, H = 230, l = 42, r = 8, t = 14, b = 36, n = N - 1;
+    var pw = W - l - r, ph = H - t - b, slot = pw / n, bw = Math.min(24, slot * 0.6);
+    var y = function (v) { return t + ph - v * ph; };
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Success chance against break-even chance by floor">';
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (v) {
+      s += '<line class="grid" x1="' + l + '" x2="' + (W - r) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>';
+      s += '<text class="ax" x="' + (l - 6) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + pct(v) + '</text>';
+    });
+    for (var fl = 1; fl <= n; fl++) {
+      var cx = l + slot * (fl - 1) + slot / 2;
+      if (fl === curR) s += '<rect class="curband" x="' + (cx - slot / 2) + '" y="' + t + '" width="' + slot + '" height="' + ph + '"/>';
+      var p = model.hit(fl, state.mask), o = Core.options(model, { r: fl, f: state.f, mask: state.mask, sp: state.sp }), be = o.breakEven;
+      s += '<path class="bar1" d="' + roundedTopBar(cx - bw / 2, y(p), bw, p * ph, 4) + '"/>';
+      s += '<line class="mark2" x1="' + (cx - bw / 2 - 4) + '" x2="' + (cx + bw / 2 + 4) + '" y1="' + y(be) + '" y2="' + y(be) + '"/>';
+      s += '<text class="ax" x="' + cx + '" y="' + (t + ph + 14) + '" text-anchor="middle">' + fl + '</text>';
+      var tipText = 'Floor ' + fl + ' to ' + (fl + 1) + ': hit chance ' + pct(p) + ', break-even ' + pct(be) + (o.failBeatsBank ? ' (a miss is worth more than banking here)' : '') + '. Best call there: ' + actName(o.act).toLowerCase() + (fl === curR ? ' (you are here)' : '');
+      s += '<rect class="hit" x="' + (cx - slot / 2) + '" y="' + t + '" width="' + slot + '" height="' + ph + '" data-tip="' + esc(tipText) + '"/>';
+    }
+    s += '<line class="base" x1="' + l + '" x2="' + (W - r) + '" y1="' + (t + ph) + '" y2="' + (t + ph) + '"/>';
+    s += '<text class="axt" x="' + (l + pw / 2) + '" y="' + (H - 4) + '" text-anchor="middle">Floor you push from</text>';
+    return s + '</svg>';
+  }
+
+  function renderHudCharts(o) {
+    var edges = bandEdges(), bands, bankPay = model.pay(state.r, state.mask, state.sp), bankBand = bandOf(edges, bankPay);
+    if (run.over || state.r === N) {
+      bands = new Array(N + 1).fill(0);
+      var fin = run.over ? run.result.payout : bankPay;
+      bands[bandOf(edges, fin)] = 1; bankBand = -1;
+      $('distSub').textContent = run.over ? 'Run finished. Start a new run for live odds.' : '';
+    } else {
+      var d = model.distAfter('opt', state.r, state.f, state.mask, state.sp, 'push');
+      var st = Core.stats(d);
+      bands = bandsFromMap(edges, d);
+      $('distSub').textContent = 'Pushing from floor ' + state.r + ': average ' + money(st.mean) + ', ' + pct(st.pZero) + ' chance of $0, with optimal calls after the push.';
+    }
+    $('chartDist').innerHTML = chartDist(bands, edges, bankBand, bankPay);
+    var left = fallsLeft();
+    $('oddsSub').textContent = 'With ' + left + ' ' + (left === 1 ? 'fall' : 'falls') + ' left and your current remodels. A bar above its orange line says push.';
+    $('chartOdds').innerHTML = chartOdds(run.over ? -1 : state.r);
+  }
+
+  function renderSession() {
+    var h = history, tbl = $('history');
+    var exact = Core.stats(model.dist('opt', 1, 0, 0, 0));
+    if (!h.length) {
+      $('sessionSub').textContent = 'Finish a run to start your record. The exact average for optimal play from floor 1 is ' + money(exact.mean) + '.';
+      tbl.innerHTML = '';
+      return;
+    }
+    var tot = 0, reg = 0, sp = 0;
+    h.forEach(function (x) { tot += x.payout; reg += x.regret; sp += x.spent; });
+    $('sessionSub').textContent = h.length + (h.length === 1 ? ' run' : ' runs') + ': you averaged ' + money(tot / h.length) + ' against ' + money(exact.mean) + ' for optimal play, spent ' + money(sp / h.length) + ' on remodels per run, and gave up ' + money(reg / h.length) + ' of value per run to suboptimal calls. Small samples swing widely, so use the Analysis tab for the long-run picture.';
+    var rows = '<tr><th>Run</th><th>Result</th><th>Payout</th><th>Spent</th><th>Regret</th></tr>';
+    h.slice().reverse().slice(0, 12).forEach(function (x) {
+      rows += '<tr><td>' + x.n + '</td><td>' + esc(x.title) + '</td><td>' + money(x.payout) + '</td><td>' + money(x.spent) + '</td><td>' + money(x.regret) + '</td></tr>';
+    });
+    tbl.innerHTML = rows;
+  }
+
+  /* ---------- Analysis ---------- */
+  function renderAnalysis() {
+    var m = model, defs = [];
+    for (var T = 1; T <= N; T++) defs.push({ name: T === 1 ? 'Bank immediately' : (T === N ? 'Push all the way up' : 'Push to floor ' + T + ', then bank'), d: m.dist('T' + T, 1, 0, 0, 0) });
+    var ns = noShopModel();
+    defs.push({ name: m.shop ? 'Optimal, no remodels' : 'Optimal policy', d: ns.dist('opt', 1, 0, 0, 0), opt: !m.shop });
+    if (m.shop) defs.push({ name: 'Optimal, with remodels', d: m.dist('opt', 1, 0, 0, 0), opt: true });
+    var maxMean = 0;
+    defs.forEach(function (df) { df.st = Core.stats(df.d); df.ce = ceDist(m, df.d); maxMean = Math.max(maxMean, df.st.mean); });
+    var html = '<tr><th>Strategy</th><th>Expected payout</th><th>Typical (median)</th><th>Spread (std dev)</th><th>Chance of $0</th><th>Certainty equivalent</th></tr>';
+    defs.forEach(function (df) {
+      html += '<tr class="' + (df.opt ? 'best' : '') + '"><td>' + esc(df.name) + '</td><td>' + money(df.st.mean) + '<span class="evbar" style="width:' + Math.round(df.st.mean / maxMean * 70) + 'px"></span></td><td>' + money(df.st.median) + '</td><td>' + money(df.st.sd) + '</td><td>' + pct(df.st.pZero, 1) + '</td><td>' + money(df.ce) + '</td></tr>';
+    });
+    $('stratTable').innerHTML = html;
+    var a = defs[defs.length - 1], b = m.shop ? defs[defs.length - 2] : null, note = '';
+    if (b) {
+      note = '<p>Remodels change the character of the game more than its average. Optimal play with remodels averages ' + money(a.st.mean) + ' against ' + money(b.st.mean) + ' without, a ' + pct(a.st.mean / b.st.mean - 1) + ' change, while the chance of leaving with $0 moves from ' + pct(b.st.pZero, 1) + ' to ' + pct(a.st.pZero, 1) + ' and the spread goes from ' + money(b.st.sd) + ' to ' + money(a.st.sd) + '. ' + (m.a < 1 ? 'At this risk appetite the certainty equivalents are ' + money(b.ce) + ' and ' + money(a.ce) + '.' : 'A player who dislikes risk can value the two policies differently from their averages, which the risk appetite setting lets you test.') + '</p>';
+    } else note = '<p>The optimal policy has the highest certainty equivalent, ' + money(a.ce) + '.</p>';
+    $('stratNote').innerHTML = note + '<p>Compare expected payout with the typical payout: the more skewed the building, the further they drift apart.</p>';
+
+    // Falls selector and option table
+    var sel = $('optFalls'), cur = sel.value;
+    var opts = ''; for (var f = 0; f <= m.L; f++) opts += '<option value="' + f + '">' + f + ' of ' + m.L + '</option>';
+    sel.innerHTML = opts; sel.value = (cur !== '' && parseInt(cur, 10) <= m.L) ? cur : '0';
+    renderFloorTable();
+
+    // Ownership
+    var d = m.dist('opt', 1, 0, 0, 0), own = Core.ownedProbs(d);
+    var oh = '<tr><th>Remodel</th><th>Price</th><th>Installed by end of run</th></tr>';
+    RM.forEach(function (x, i) {
+      var ex = m.shop ? ('Floor ' + Math.max(m.shopFrom, 1) + ': ' + money(m.price(i, Math.max(m.shopFrom, 1))) + ', floor 6: ' + money(m.price(i, 6))) : 'Desk closed';
+      oh += '<tr><td>' + esc(x.name) + '</td><td>' + pct(m.shares[i]) + ' of pot<br><span style="color:var(--muted);font-size:11px;">' + esc(ex) + '</span></td><td>' + (m.shop ? pct(own[i], 1) : 'n/a') + '</td></tr>';
+    });
+    $('ownTable').innerHTML = oh;
+    var ownNote = '';
+    if (m.shop) {
+      ownNote = '<p>Rates near 0% or 100% mean the choice is clear at these prices. Rates in between mean the right call depends on how the climb has gone.</p>';
+      if (m.a < 1 && own.every(function (x) { return x < 0.01; })) ownNote += '<p>At this risk appetite the optimal player never buys. Remodels raise the average payout but also the chance of ending with nothing.</p>';
+    }
+    $('ownNote').innerHTML = ownNote;
+    renderMC();
+  }
+
+  function renderFloorTable() {
+    var m = model, f = parseInt($('optFalls').value || '0', 10) || 0;
+    var h = '<tr><th>Floor</th><th>Bank</th><th>Push</th>' + RM.map(function (x) { return '<th>' + esc(x.name) + '</th>'; }).join('') + '</tr>';
+    for (var r = 1; r < N; r++) {
+      var o = Core.options(m, { r: r, f: f, mask: 0, sp: 0 });
+      var cells = [['bank', o.bank], ['push', o.push]];
+      RM.forEach(function (x, i) { cells.push(['buy' + i, o.buys[i]]); });
+      h += '<tr><td>' + r + '</td>' + cells.map(function (c) {
+        if (c[1] === null) return '<td class="dim">closed</td>';
+        return '<td class="' + (c[0] === o.act ? 'bestcell' : '') + '">' + money(c[1]) + '</td>';
+      }).join('') + '</tr>';
+    }
+    $('floorTable').innerHTML = h;
+  }
+
+  function renderMC() {
+    var m = model, d = m.dist('opt', 1, 0, 0, 0), exact = Core.stats(d), own = Core.ownedProbs(d);
+    if (!mc) {
+      $('mcStats').innerHTML = '<div><div class="kk">Exact expected payout</div><div class="mc-stat">' + money(exact.mean) + '</div></div>';
+      $('chartMC').innerHTML = ''; $('mcTable').innerHTML = '';
+      return;
+    }
+    var lo = mc.mean - 1.96 * mc.se, hi = mc.mean + 1.96 * mc.se, inside = exact.mean >= lo && exact.mean <= hi;
+    $('mcStats').innerHTML =
+      '<div><div class="kk">Exact expected payout</div><div class="mc-stat">' + money(exact.mean) + '</div></div>' +
+      '<div><div class="kk">Simulated average</div><div class="mc-stat">$' + mc.mean.toFixed(2) + '</div></div>' +
+      '<div><div class="kk">95% interval</div><div class="mc-stat" style="font-size:22px;">' + money(lo) + ' to ' + money(hi) + '</div></div>' +
+      '<div><div class="kk">Exact value inside?</div><div class="mc-stat ' + (inside ? 'pos' : 'neg') + '">' + (inside ? 'Yes' : 'No') + '</div><div class="note">' + (inside ? '' : 'Expected about 1 time in 20 by chance. Run again.') + '</div></div>';
+    $('chartMC').innerHTML = chartMC(mc, exact.mean);
+    var th = '<tr><th>Measure</th><th>Exact</th><th>Simulated</th></tr>';
+    th += '<tr><td>Chance of $0</td><td>' + pct(exact.pZero, 2) + '</td><td>' + pct(mc.pZero, 2) + '</td></tr>';
+    th += '<tr><td>Spread (std dev)</td><td>' + money(exact.sd) + '</td><td>' + money(mc.sd) + '</td></tr>';
+    if (m.shop) {
+      RM.forEach(function (x, i) { th += '<tr><td>' + esc(x.name) + ' installed</td><td>' + pct(own[i], 2) + '</td><td>' + pct(mc.owned[i], 2) + '</td></tr>'; });
+      th += '<tr><td>Average spent on remodels</td><td>n/a</td><td>' + money(mc.avgSpent) + '</td></tr>';
+    }
+    $('mcTable').innerHTML = th;
+  }
+
+  function chartMC(res, exactMean) {
+    var W = 480, H = 240, l = 52, r = 14, t = 14, b = 38;
+    var cps = res.checkpoints, pw = W - l - r, ph = H - t - b;
+    var xs = cps.map(function (c) { return Math.log10(c.n); });
+    var x0 = 1, x1 = Math.log10(res.n);
+    var ys = cps.map(function (c) { return c.mean; }).concat([exactMean]);
+    var lo = Math.min.apply(null, ys), hi = Math.max.apply(null, ys);
+    var pad = (hi - lo) * 0.08 + 1; lo -= pad; hi += pad;
+    var ticks = niceTicks(lo, hi, 4); lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+    var X = function (v) { return l + (v - x0) / (x1 - x0 || 1) * pw; };
+    var Y = function (v) { return t + ph - (v - lo) / (hi - lo) * ph; };
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Running average of simulated payout converging on the exact expected payout">';
+    ticks.forEach(function (v) {
+      s += '<line class="grid" x1="' + l + '" x2="' + (W - r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '"/>';
+      s += '<text class="ax" x="' + (l - 6) + '" y="' + (Y(v) + 3) + '" text-anchor="end">' + money(v) + '</text>';
+    });
+    var xt = [10, 100, 1000, 10000, 100000, 1000000].filter(function (v) { return v <= res.n; });
+    xt.forEach(function (v) { s += '<text class="ax" x="' + X(Math.log10(v)) + '" y="' + (t + ph + 14) + '" text-anchor="middle">' + (v >= 1000 ? (v / 1000) + 'K' : v) + '</text>'; });
+    s += '<line class="base" x1="' + l + '" x2="' + (W - r) + '" y1="' + (t + ph) + '" y2="' + (t + ph) + '"/>';
+    s += '<line class="line2" x1="' + l + '" x2="' + (W - r) + '" y1="' + Y(exactMean) + '" y2="' + Y(exactMean) + '"/>';
+    var pts = cps.map(function (c, i) { return X(xs[i]).toFixed(1) + ',' + Y(c.mean).toFixed(1); }).join(' ');
+    s += '<polyline class="line1" points="' + pts + '"/>';
+    var last = cps[cps.length - 1];
+    s += '<circle class="dot1" cx="' + X(xs[xs.length - 1]) + '" cy="' + Y(last.mean) + '" r="4"/>';
+    cps.forEach(function (c, i) {
+      s += '<circle class="hit" cx="' + X(xs[i]) + '" cy="' + Y(c.mean) + '" r="9" data-tip="After ' + c.n.toLocaleString('en-US') + ' runs: average ' + money(c.mean) + ' (exact ' + money(exactMean) + ')"/>';
+    });
+    s += '<text class="axt" x="' + (l + pw / 2) + '" y="' + (H - 4) + '" text-anchor="middle">Simulated runs (log scale)</text>';
+    return s + '</svg>';
+  }
+
+  function runMC() {
+    var n = parseInt($('mcN').value, 10);
+    $('mcStatus').textContent = 'Running ' + n.toLocaleString('en-US') + ' simulated runs...';
+    $('mcRun').disabled = true;
+    setTimeout(function () {
+      var seed = (Date.now() & 0xfffffff) || 1;
+      mc = Core.monteCarlo(model, 'opt', n, seed);
+      $('mcStatus').textContent = 'Finished.';
+      $('mcRun').disabled = false;
+      renderMC();
+    }, 30);
+  }
+
+  function runSens() {
+    if (sensDone) return;
+    sensDone = true;
+    var tok = ++sensToken, list = [1, 0.9, 0.8, 0.7, 0.6, 0.5], rows = [];
+    function paint() {
+      var h = '<tr><th>Appetite</th><th>Expected</th><th>Chance of $0</th><th>Remodels installed (avg)</th></tr>';
+      rows.forEach(function (r) { h += '<tr><td>' + r.a.toFixed(2) + (r.a === 1 ? ' (neutral)' : '') + '</td><td>' + money(r.mean) + '</td><td>' + pct(r.p0, 1) + '</td><td>' + (model.shop ? r.owned.toFixed(2) : 'n/a') + '</td></tr>'; });
+      if (rows.length < list.length) h += '<tr><td colspan="4" class="dim" style="text-align:left;">Solving the rest...</td></tr>';
+      $('sensTable').innerHTML = h;
+    }
+    paint();
+    (function step(i) {
+      if (tok !== sensToken || i >= list.length) return;
+      var m2 = Core.buildModel(Object.assign({}, settings, { a: list[i] }));
+      var d = m2.dist('opt', 1, 0, 0, 0), st = Core.stats(d), own = Core.ownedProbs(d);
+      rows.push({ a: list[i], mean: st.mean, p0: st.pZero, owned: own.reduce(function (x, y) { return x + y; }, 0) });
+      paint();
+      setTimeout(function () { step(i + 1); }, 20);
+    })(0);
+  }
+
+  /* ---------- Settings ---------- */
+  function renderSettingsView() {
+    ['base', 'growth', 'dc0', 'step', 'fall', 'lives', 'deathDC', 'a', 'shopFrom'].forEach(function (k) { $('p_' + k).value = settings[k]; });
+    $('p_shop').value = settings.shop ? '1' : '0';
+    for (var i = 0; i < 4; i++) $('p_sh' + i).value = Math.round(settings.shares[i] * 100);
+    var h = '<tr><th>Floor</th><th>Pot</th><th>Roll needed to go up</th><th>Hit chance</th>' + RM.map(function (x) { return '<th>' + esc(x.name) + '</th>'; }).join('') + '</tr>';
+    for (var r = 1; r <= N; r++) {
+      h += '<tr><td>' + r + '</td><td>' + money(model.pot[r]) + '</td><td>' + (r < N ? model.dc[r] + '+' : 'none') + '</td><td>' + (r < N ? pct(model.hit(r, 0)) : 'none') + '</td>' +
+        RM.map(function (x, i) { return model.deskOpen(r) ? '<td>' + money(model.price(i, r)) + '</td>' : '<td class="dim">' + (r >= N ? 'none' : 'closed') + '</td>'; }).join('') + '</tr>';
+    }
+    $('schedule').innerHTML = h;
+  }
+  function readSettings() {
+    var s = cloneDefaults();
+    var lim = { base: [1, 1e6], growth: [1.01, 3], dc0: [2, 20], step: [0, 5], fall: [1, 5], lives: [0, 4], deathDC: [2, 20], a: [0.3, 1], shopFrom: [1, 9] };
+    Object.keys(lim).forEach(function (k) {
+      var v = parseFloat($('p_' + k).value);
+      if (!isFinite(v)) v = Core.defaultParams[k];
+      v = Math.min(lim[k][1], Math.max(lim[k][0], v));
+      if (['dc0', 'fall', 'lives', 'deathDC', 'shopFrom'].indexOf(k) >= 0) v = Math.round(v);
+      s[k] = v;
+    });
+    s.shop = $('p_shop').value === '1';
+    for (var i = 0; i < 4; i++) {
+      var v = parseFloat($('p_sh' + i).value);
+      if (!isFinite(v)) v = Core.defaultParams.shares[i] * 100;
+      s.shares[i] = Math.min(95, Math.max(5, v)) / 100;
+    }
+    return s;
+  }
+
+  /* ---------- Tabs ---------- */
+  function showTab(name) {
+    ['play', 'analysis', 'settings'].forEach(function (n) {
+      $('view-' + n).hidden = n !== name;
+      $('tab-' + n).setAttribute('aria-selected', n === name ? 'true' : 'false');
+    });
+    if (name === 'analysis') runSens();
+  }
+
+  /* ---------- Boot ---------- */
+  settings = cloneDefaults();
+  setupTip();
+  ['play', 'analysis', 'settings'].forEach(function (n) { $('tab-' + n).addEventListener('click', function () { showTab(n); }); });
+  $('showAdvice').addEventListener('change', function () { renderPlay(); });
+  $('optFalls').addEventListener('change', renderFloorTable);
+  $('mcRun').addEventListener('click', runMC);
+  $('applySettings').addEventListener('click', function () { settings = readSettings(); rebuild(); showTab('play'); });
+  $('resetSettings').addEventListener('click', function () { settings = cloneDefaults(); rebuild(); });
+  rebuild();
+})();
+</script>
+</body>
+</html>
